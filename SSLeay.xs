@@ -9,15 +9,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "EXTERN.h"
-#include "perl.h"
-
-/* CRYPT_SSLEAY_free() will not be #defined to be free() now that we're no
- * longer supporting pre-2000 OpenSSL.
-#define NO_XSLOCKS
-*/
-
-#include "XSUB.h"
 
 /* build problem under openssl 0.9.6 and some builds of perl 5.8.x */
 #ifndef PERL5
@@ -41,6 +32,16 @@ extern "C" {
 #define CRYPT_SSLEAY_free OPENSSL_free
 
 #undef Free /* undo namespace pollution from crypto.h */
+#include "EXTERN.h"
+#include "perl.h"
+
+/* CRYPT_SSLEAY_free() will not be #defined to be free() now that we're no
+ * longer supporting pre-2000 OpenSSL.
+#define NO_XSLOCKS
+*/
+
+#include "XSUB.h"
+
 #ifdef __cplusplus
 }
 #endif
