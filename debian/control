@@ -1,0 +1,27 @@
+Source: crypt-ssleay
+Section: perl
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Noèl Köthe <noel@debian.org>
+Standards-Version: 3.8.2
+Build-Depends: debhelper (>> 5.0.0), perl (>> 5.8.1), dpatch, cdbs, libssl-dev (>=0.9.8), openssl
+Homepage: http://search.cpan.org/dist/Crypt-SSLeay/
+
+Package: libcrypt-ssleay-perl
+Architecture: any
+Depends: ${shlibs:Depends}, ${perl:Depends}, libmime-base64-perl, liburi-perl
+Description: Support for https protocol in LWP
+ This perl module provides support for the https protocol under LWP, so
+ that an LWP::UserAgent can make https GET & HEAD & POST requests. Please
+ see perldoc LWP for more information on POST requests.
+ .
+ The Crypt::SSLeay package contains Net::SSL, which is automatically
+ loaded by LWP::Protocol::https on https requests, and provides the
+ necessary SSL glue for that module to work via these deprecated modules:
+ Crypt::SSLeay::CTX, Crypt::SSLeay::Conn and Crypt::SSLeay::X509.
+ .
+ Work on Crypt::SSLeay has been continued only to provide https support
+ for the LWP - libwww perl libraries. If you want access to the OpenSSL
+ API via perl, check out Sampo's Net::SSLeay (available in Debian as
+ the libnet-ssleay-perl package).
+
