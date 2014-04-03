@@ -420,6 +420,7 @@ sub proxy {
     }
 
     $proxy_server =~ s|\Ahttps?://||i;
+    $proxy_server =~ s|/+$||;
     $proxy_server;
 }
 
