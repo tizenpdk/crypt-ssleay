@@ -5,8 +5,6 @@ Release:        10.3
 License:        GPL+ or Artistic
 Group:          Development/Libraries
 Source0:        Crypt-SSLeay_0.64.tar.gz
-Patch1:         perl-Crypt-SSLeay-cryptdef.patch
-Patch2:         0001-fix-trailing-slash-in-proxy-issue.patch
 URL:            http://search.cpan.org/dist/Crypt-SSLeay/
 %if 0%{?suse_version}
 Vendor:         openSUSE
@@ -45,8 +43,6 @@ necessary SSL glue for that module to work.
 
 %prep
 %setup -q -n Crypt-SSLeay-0.64
-%patch1 -p1 -b .cryptdef
-%patch2 -p1
 
 # Fix line endings
 perl -pi -e 's/\r$//' README
