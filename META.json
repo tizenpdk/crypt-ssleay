@@ -7,7 +7,13 @@
       "Gisle Aas"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "ExtUtils::MakeMaker version 6.96, CPAN::Meta::Converter version 2.140640",
+   "keywords" : [
+      "lwp",
+      "lwp-useragent",
+      "openssl",
+      "https"
+   ],
    "license" : [
       "artistic_2"
    ],
@@ -19,28 +25,44 @@
    "no_index" : {
       "directory" : [
          "t",
+         "inc",
          "inc"
       ]
    },
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::More" : "0.88",
-            "Try::Tiny" : "0.09"
+            "ExtUtils::MakeMaker" : "0",
+            "Test::More" : "0.19",
+            "Try::Tiny" : "0.19"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "0"
+            "ExtUtils::CBuilder" : "0.280205",
+            "Getopt::Long" : "0",
+            "Path::Class" : "0.26",
+            "Try::Tiny" : "0.19"
          }
       },
       "runtime" : {
          "requires" : {
             "LWP::Protocol::https" : "6.02",
-            "MIME::Base64" : "0"
+            "MIME::Base64" : "0",
+            "perl" : "5.006"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.64"
+   "resources" : {
+      "repository" : {
+         "url" : "https://github.com/nanis/Crypt-SSLeay"
+      }
+   },
+   "version" : "0.72",
+   "x_build" : {
+      "recommends" : {
+         "Devel::CheckLib" : "0.99"
+      }
+   }
 }

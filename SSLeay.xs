@@ -89,22 +89,29 @@ PROTOTYPES: DISABLE
 
 MODULE = Crypt::SSLeay         PACKAGE = Crypt::SSLeay::Err PREFIX = ERR_
 
-char*
-ERR_get_error_string()
-  CODE:
-    unsigned long l;
-    char buf[1024];
+#define CRYPT_SSLEAY_ERR_BUFSIZE 1024
 
-    if(!(l=ERR_get_error()))
-       RETVAL=NULL;
-    else {
-       ERR_error_string(l,buf);
-       RETVAL=buf;
-    }
-  OUTPUT:
-    RETVAL
+const char *
+ERR_get_error_string()
+    PREINIT:
+        unsigned long code;
+        char buf[ CRYPT_SSLEAY_ERR_BUFSIZE ];
+
+    CODE:
+        if ((code = ERR_get_error()) == 0) {
+            RETVAL = NULL;
+        }
+        else {
+            /* www.openssl.org/docs/crypto/ERR_error_string.html */
+            ERR_error_string_n(code, buf, CRYPT_SSLEAY_ERR_BUFSIZE);
+            RETVAL = buf;
+        }
+    OUTPUT:
+        RETVAL
 
 MODULE = Crypt::SSLeay    PACKAGE = Crypt::SSLeay::CTX    PREFIX = SSL_CTX_
+
+#define CRYPT_SSLEAY_RAND_BUFSIZE 1024
 
 SSL_CTX*
 SSL_CTX_new(packname, ssl_version)
@@ -113,11 +120,10 @@ SSL_CTX_new(packname, ssl_version)
      CODE:
         SSL_CTX* ctx;
         static int bNotFirstTime;
-        char buf[1024];
-        int rand_bytes_read;
+        char buf[ CRYPT_SSLEAY_RAND_BUFSIZE ];
 
         if(!bNotFirstTime) {
-            SSLeay_add_all_algorithms();
+            OpenSSL_add_all_algorithms();
             SSL_load_error_strings();
             ERR_load_crypto_strings();
             SSL_library_init();
@@ -126,12 +132,17 @@ SSL_CTX_new(packname, ssl_version)
 
         /**** Code from Devin Heitmueller, 10/3/2002 ****/
         /**** Use /dev/urandom to seed if available  ****/
-        rand_bytes_read = RAND_load_file("/dev/urandom", 1024);
-        if (rand_bytes_read <= 0) {
+        /* ASU: 2014/04/23 It looks like it is OK to leave
+         * this in. See following thread:
+         * http://security.stackexchange.com/questions/56469/
+         */
+       if (RAND_load_file("/dev/urandom", CRYPT_SSLEAY_RAND_BUFSIZE)
+            != CRYPT_SSLEAY_RAND_BUFSIZE)
+        {
             /* Couldn't read /dev/urandom, just seed off
              * of the stack variable (the old way)
              */
-            RAND_seed(buf,sizeof buf);
+            RAND_seed(buf, CRYPT_SSLEAY_RAND_BUFSIZE);
         }
 
         if(ssl_version == 23) {
@@ -141,14 +152,14 @@ SSL_CTX_new(packname, ssl_version)
             ctx = SSL_CTX_new(SSLv3_client_method());
         }
         else {
-#ifndef OPENSSL_NO_SSL2 
-            /* v2 is the default */ 
+#ifndef OPENSSL_NO_SSL2
+            /* v2 is the default */
             ctx = SSL_CTX_new(SSLv2_client_method());
-#else 
+#else
             /* v3 is the default */
             ctx = SSL_CTX_new(SSLv3_client_method());
 #endif
-        }                
+        }
 
         SSL_CTX_set_options(ctx,SSL_OP_ALL|0);
         SSL_CTX_set_default_verify_paths(ctx);
@@ -181,8 +192,8 @@ SSL_CTX_use_PrivateKey_file(ctx, filename ,mode)
 int
 SSL_CTX_use_pkcs12_file(ctx, filename, password)
      SSL_CTX* ctx
-     char* filename
-     char* password
+     const char *filename
+     const char *password
      PREINIT:
         FILE *fp;
         EVP_PKEY *pkey;
@@ -194,7 +205,7 @@ SSL_CTX_use_pkcs12_file(ctx, filename, password)
             p12 = d2i_PKCS12_fp(fp, NULL);
             fclose (fp);
 
-            if (p12) { 
+            if (p12) {
                 if(PKCS12_parse(p12, password, &pkey, &cert, &ca)) {
                     if (pkey) {
                         RETVAL = SSL_CTX_use_PrivateKey(ctx, pkey);
@@ -251,13 +262,13 @@ SSL_new(packname, ctx, debug, ...)
            ssl = SSL_new(ctx);
            SSL_set_connect_state(ssl);
            /* The set mode is necessary so the SSL connection can
-            * survive a renegotiated cipher that results from 
-            * modssl VerifyClient config changing between 
+            * survive a renegotiated cipher that results from
+            * modssl VerifyClient config changing between
             * VirtualHost & some other config block.  At modssl
             * this would be a [trace] ssl message:
             *  "Changed client verification type will force renegotiation"
             * -- jc 6/28/2001
-            */                      
+            */
 #ifdef SSL_MODE_AUTO_RETRY
            SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 #endif
@@ -278,6 +289,10 @@ SSL_new(packname, ctx, debug, ...)
 
 void
 SSL_free(ssl)
+        SSL* ssl
+
+int
+SSL_pending(ssl)
         SSL* ssl
 
 int
@@ -332,7 +347,7 @@ SSL_write(ssl, buf, ...)
            {
                 int n = SSL_write(ssl, buf+offset, len);
                 int x = SSL_get_error(ssl, n);
-                
+
                 if ( n >= 0 )
                 {
                     keep_trying_to_write = 0;
@@ -340,7 +355,7 @@ SSL_write(ssl, buf, ...)
                 }
                 else
                 {
-                    if 
+                    if
                     (
                         (x != SSL_ERROR_WANT_READ) &&
                         (x != SSL_ERROR_WANT_WRITE)
@@ -385,7 +400,7 @@ SSL_read(ssl, buf, len,...)
            }
            if (len < 0)
                croak("Negative length");
-        
+
            SvGROW(sv, offset + len + 1);
            buf = SvPVX(sv);  /* it might have been relocated */
 
@@ -408,10 +423,10 @@ SSL_read(ssl, buf, len,...)
                 else
                 {
                     if
-                    ( 
-                        (x != SSL_ERROR_WANT_READ) && 
-                        (x != SSL_ERROR_WANT_WRITE) 
-                    ) 
+                    (
+                        (x != SSL_ERROR_WANT_READ) &&
+                        (x != SSL_ERROR_WANT_WRITE)
+                    )
                     {
                         keep_trying_to_read = 0;
                         RETVAL = &PL_sv_undef;
@@ -433,15 +448,19 @@ SSL_get_verify_result(ssl)
         OUTPUT:
            RETVAL
 
+#define CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE 512
+
 char*
 SSL_get_shared_ciphers(ssl)
-        SSL* ssl
-        PREINIT:
-           char buf[512];
-        CODE:
-           RETVAL = SSL_get_shared_ciphers(ssl, buf, sizeof(buf));
-        OUTPUT:
-           RETVAL
+    SSL* ssl
+    PREINIT:
+        char buf[ CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE ];
+    CODE:
+        RETVAL = SSL_get_shared_ciphers(
+                    ssl, buf, CRYPT_SSLEAY_SHARED_CIPHERS_BUFSIZE
+                 );
+    OUTPUT:
+        RETVAL
 
 char*
 SSL_get_cipher(ssl)
@@ -449,7 +468,7 @@ SSL_get_cipher(ssl)
         CODE:
            RETVAL = (char*) SSL_get_cipher(ssl);
         OUTPUT:
-           RETVAL        
+           RETVAL
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
 
@@ -505,5 +524,49 @@ get_notAfterString(cert)
             RETVAL = (char *)X509_get_notAfter(cert)->data;
          OUTPUT:
             RETVAL
+
+MODULE = Crypt::SSLeay      PACKAGE = Crypt::SSLeay::Version    PREFIX = VERSION_
+
+const char *
+VERSION_openssl_version()
+    CODE:
+        RETVAL = SSLeay_version(SSLEAY_VERSION);
+    OUTPUT:
+        RETVAL
+
+long
+VERSION_openssl_version_number()
+    CODE:
+        RETVAL = OPENSSL_VERSION_NUMBER;
+    OUTPUT:
+        RETVAL
+
+const char *
+VERSION_openssl_cflags()
+    CODE:
+        RETVAL = SSLeay_version(SSLEAY_CFLAGS);
+    OUTPUT:
+        RETVAL
+
+const char *
+VERSION_openssl_platform()
+    CODE:
+        RETVAL = SSLeay_version(SSLEAY_PLATFORM);
+    OUTPUT:
+        RETVAL
+
+const char *
+VERSION_openssl_built_on()
+    CODE:
+        RETVAL = SSLeay_version(SSLEAY_BUILT_ON);
+    OUTPUT:
+        RETVAL
+
+const char *
+VERSION_openssl_dir()
+    CODE:
+        RETVAL = SSLeay_version(SSLEAY_DIR);
+    OUTPUT:
+        RETVAL
 
 

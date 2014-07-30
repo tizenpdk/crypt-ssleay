@@ -6,7 +6,8 @@ use Socket;
 use Carp;
 
 use vars qw(@ISA $VERSION $NEW_ARGS);
-$VERSION = '2.85';
+$VERSION = '2.86';
+$VERSION = eval $VERSION;
 
 require IO::Socket;
 @ISA=qw(IO::Socket::INET);
@@ -198,6 +199,12 @@ sub get_cipher {
     *$self->{ssl_ssl}->get_cipher(@_);
 }
 
+sub pending {
+    my $self = shift;
+    $self = $REAL{$self} || $self;
+    *$self->{ssl_ssl}->pending(@_);
+}
+
 sub ssl_context {
     my $self = shift;
     $self = $REAL{$self} || $self;
@@ -378,7 +385,7 @@ sub proxy_connect_helper {
     # better) may actually make this problem go away, but either way,
     # there is no good reason to use \d when checking for 0-9
 
-    while ($header !~ m{HTTP/[0-9][.][0-9]\s+200\s+.*$CRLF$CRLF}) {
+    while ($header !~ m{HTTP/[0-9][.][0-9]\s+200\s+.*$CRLF$CRLF}s) {
         $timeout = $self->timeout(5) unless length $header;
         my $n = $self->SUPER::sysread($header, 8192, length $header);
         last if $n <= 0;
@@ -420,6 +427,11 @@ sub proxy {
     }
 
     $proxy_server =~ s|\Ahttps?://||i;
+    # sanitize the end of the string too
+    # see also http://www.nntp.perl.org/group/perl.libwww/2012/10/msg7629.html
+    # and https://github.com/nanis/Crypt-SSLeay/pull/1
+    # Thank you Mark Allen and YigangX Wen
+    $proxy_server =~ s|(:[1-9][0-9]{0,4})/\z|$1|;
     $proxy_server;
 }
 
@@ -521,6 +533,11 @@ object.
 Attempts to read up to 32KiB of data from the socket. Returns
 C<undef> if nothing was read, otherwise returns the data as
 a scalar.
+
+=item pending
+
+Provides access to OpenSSL's C<pending> attribute on the SSL connection
+object.
 
 =item getline
 
