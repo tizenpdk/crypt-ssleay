@@ -1,4 +1,4 @@
-crypt-ssleay (0.64) precise; urgency=low
+crypt-ssleay (0.64-tizen20130308) precise; urgency=low
 
   * d/p/sslv2.patch: Add patch from Andreas J. König to disable sslv2
     Ubuntu's Openssl disabled sslv2, making this module fail to load.
